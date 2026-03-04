@@ -1,6 +1,7 @@
 # Heap Dump MCP Server
 
 A Model Context Protocol (MCP) server for analyzing Java heap dump files (.hprof). This project provides a set of tools that allow AI assistants to analyze Java heap dumps through a standardized MCP interface.
+Based on NetBeans Prfiler library as a backend, mostly vibecoded
 
 ## Features
 
