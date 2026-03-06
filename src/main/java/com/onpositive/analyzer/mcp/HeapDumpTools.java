@@ -30,9 +30,16 @@ public class HeapDumpTools {
     }
 
     public SyncToolSpecification loadHeapTool() {
+        McpSchema.JsonSchema filePathSchema = new McpSchema.JsonSchema(
+                "string", // The type must be a string literal matching JSON types
+                null,     // properties (null for primitive types)
+                null,     // required (null for primitive types)
+                false, null, null
+        );
+
         McpSchema.JsonSchema inputSchema = new McpSchema.JsonSchema(
                 "object",
-                Map.of("file_path", String.class),
+                Map.of("file_path", filePathSchema),
                 List.of("file_path"),
                 false, null, null
         );
@@ -59,20 +66,97 @@ public class HeapDumpTools {
         });
     }
 
-    public SyncToolSpecification getAllClassesTool() {
+    public SyncToolSpecification getClassesByMaxInstancesCountTool() {
+        McpSchema.JsonSchema fromSchema = new McpSchema.JsonSchema(
+                "integer",
+                null,
+                null,
+                false, null, null
+        );
+
+        McpSchema.JsonSchema toSchema = new McpSchema.JsonSchema(
+                "integer",
+                null,
+                null,
+                false, null, null
+        );
+
+        McpSchema.JsonSchema inputSchema = new McpSchema.JsonSchema(
+                "object",
+                Map.of("from", fromSchema, "to", toSchema),
+                List.of(),
+                false, null, null
+        );
+
         McpSchema.Tool tool = new McpSchema.Tool(
-                "get_all_classes",
-                "Get All Classes",
-                "Returns a list of all classes in the loaded heap.",
-                new McpSchema.JsonSchema("object", Map.of(), List.of(), false, null, null),
+                "get_classes_by_max_instances_count",
+                "Get Classes By Max Instances Count",
+                "Returns a sorted list of classes by instance count (descending) with pagination.",
+                inputSchema,
                 null, null, null
         );
 
         return new SyncToolSpecification(tool, (exchange, args) -> {
             try {
-                List<JavaClass> classes = heapDumpService.getAllClasses();
+                Number fromObj = (Number) args.get("from");
+                Number toObj = (Number) args.get("to");
+                int from = (fromObj != null) ? fromObj.intValue() : 0;
+                int to = (toObj != null) ? toObj.intValue() : 50;
+
+                List<HeapDumpService.ClassStats> classes = heapDumpService.getClassesByMaxInstancesCount(from, to);
                 String result = classes.stream()
-                        .map(JavaClass::getName)
+                        .map(cs -> cs.className + " (Count: " + cs.instanceCount + ", Size: " + cs.size + ")")
+                        .collect(Collectors.joining("\n"));
+                return McpSchema.CallToolResult.builder()
+                        .content(List.of(new McpSchema.TextContent(result)))
+                        .isError(false)
+                        .build();
+            } catch (Exception e) {
+                return errorResult(e.getMessage());
+            }
+        });
+    }
+
+    public SyncToolSpecification getClassesByMaxInstancesSizeTool() {
+        McpSchema.JsonSchema fromSchema = new McpSchema.JsonSchema(
+                "integer",
+                null,
+                null,
+                false, null, null
+        );
+
+        McpSchema.JsonSchema toSchema = new McpSchema.JsonSchema(
+                "integer",
+                null,
+                null,
+                false, null, null
+        );
+
+        McpSchema.JsonSchema inputSchema = new McpSchema.JsonSchema(
+                "object",
+                Map.of("from", fromSchema, "to", toSchema),
+                List.of(),
+                false, null, null
+        );
+
+        McpSchema.Tool tool = new McpSchema.Tool(
+                "get_classes_by_max_instances_size",
+                "Get Classes By Max Instances Size",
+                "Returns a sorted list of classes by total instance size (descending) with pagination.",
+                inputSchema,
+                null, null, null
+        );
+
+        return new SyncToolSpecification(tool, (exchange, args) -> {
+            try {
+                Number fromObj = (Number) args.get("from");
+                Number toObj = (Number) args.get("to");
+                int from = (fromObj != null) ? fromObj.intValue() : 0;
+                int to = (toObj != null) ? toObj.intValue() : 50;
+
+                List<HeapDumpService.ClassStats> classes = heapDumpService.getClassesByMaxInstancesSize(from, to);
+                String result = classes.stream()
+                        .map(cs -> cs.className + " (Count: " + cs.instanceCount + ", Size: " + cs.size + ")")
                         .collect(Collectors.joining("\n"));
                 return McpSchema.CallToolResult.builder()
                         .content(List.of(new McpSchema.TextContent(result)))
@@ -85,9 +169,16 @@ public class HeapDumpTools {
     }
 
     public SyncToolSpecification getBiggestObjectsTool() {
+        McpSchema.JsonSchema limitSchema = new McpSchema.JsonSchema(
+                "integer",
+                null,
+                null,
+                false, null, null
+        );
+
         McpSchema.JsonSchema inputSchema = new McpSchema.JsonSchema(
                 "object",
-                Map.of("limit", Integer.class),
+                Map.of("limit", limitSchema),
                 List.of("limit"),
                 false, null, null
         );
@@ -145,10 +236,68 @@ public class HeapDumpTools {
         });
     }
 
-    public SyncToolSpecification getJavaClassByNameTool() {
+    public SyncToolSpecification getGCRootsPaginatedTool() {
+        McpSchema.JsonSchema fromSchema = new McpSchema.JsonSchema(
+                "integer",
+                null,
+                null,
+                false, null, null
+        );
+
+        McpSchema.JsonSchema toSchema = new McpSchema.JsonSchema(
+                "integer",
+                null,
+                null,
+                false, null, null
+        );
+
         McpSchema.JsonSchema inputSchema = new McpSchema.JsonSchema(
                 "object",
-                Map.of("name", String.class),
+                Map.of("from", fromSchema, "to", toSchema),
+                List.of(),
+                false, null, null
+        );
+
+        McpSchema.Tool tool = new McpSchema.Tool(
+                "get_gc_roots_paginated",
+                "Get GC Roots Paginated",
+                "Returns GC roots with pagination, including kind and instance information.",
+                inputSchema,
+                null, null, null
+        );
+
+        return new SyncToolSpecification(tool, (exchange, args) -> {
+            try {
+                Number fromObj = (Number) args.get("from");
+                Number toObj = (Number) args.get("to");
+                int from = (fromObj != null) ? fromObj.intValue() : 0;
+                int to = (toObj != null) ? toObj.intValue() : 50;
+
+                List<HeapDumpService.GCRootInfo> roots = heapDumpService.getGCRootsPaginated(from, to);
+                String result = roots.stream()
+                        .map(root -> "Kind: " + root.kind + ", Instance ID: " + root.instanceId + ", Class: " + root.instanceClassName)
+                        .collect(Collectors.joining("\n"));
+                return McpSchema.CallToolResult.builder()
+                        .content(List.of(new McpSchema.TextContent(result)))
+                        .isError(false)
+                        .build();
+            } catch (Exception e) {
+                return errorResult(e.getMessage());
+            }
+        });
+    }
+
+    public SyncToolSpecification getJavaClassByNameTool() {
+        McpSchema.JsonSchema nameSchema = new McpSchema.JsonSchema(
+                "string",
+                null,
+                null,
+                false, null, null
+        );
+
+        McpSchema.JsonSchema inputSchema = new McpSchema.JsonSchema(
+                "object",
+                Map.of("name", nameSchema),
                 List.of("name"),
                 false, null, null
         );
@@ -179,9 +328,16 @@ public class HeapDumpTools {
     }
 
     public SyncToolSpecification getJavaClassByIdTool() {
+        McpSchema.JsonSchema idSchema = new McpSchema.JsonSchema(
+                "integer",
+                null,
+                null,
+                false, null, null
+        );
+
         McpSchema.JsonSchema inputSchema = new McpSchema.JsonSchema(
                 "object",
-                Map.of("id", long.class),
+                Map.of("id", idSchema),
                 List.of("id"),
                 false, null, null
         );
@@ -196,7 +352,7 @@ public class HeapDumpTools {
 
         return new SyncToolSpecification(tool, (exchange, args) -> {
             try {
-                long id = (long) args.get("id");
+                long id = ((Number) args.get("id")).longValue();
                 JavaClass cls = heapDumpService.getJavaClassById(id);
                 if (cls == null) return errorResult("Class not found: " + id);
                 String info = String.format("Name: %s\nInstances: %d\nTotal Size: %d",
@@ -211,10 +367,66 @@ public class HeapDumpTools {
         });
     }
 
-    public SyncToolSpecification getJavaClassesByRegExpTool() {
+    public SyncToolSpecification getInstanceByIdTool() {
+        McpSchema.JsonSchema idSchema = new McpSchema.JsonSchema(
+                "integer",
+                null,
+                null,
+                false, null, null
+        );
+
         McpSchema.JsonSchema inputSchema = new McpSchema.JsonSchema(
                 "object",
-                Map.of("regexp", String.class),
+                Map.of("id", idSchema),
+                List.of("id"),
+                false, null, null
+        );
+
+        McpSchema.Tool tool = new McpSchema.Tool(
+                "get_instance_by_id",
+                "Get Instance By ID",
+                "Returns instance details by its internal ID, including class, size, retained size, and field values.",
+                inputSchema,
+                null, null, null
+        );
+
+        return new SyncToolSpecification(tool, (exchange, args) -> {
+            try {
+                long id = ((Number) args.get("id")).longValue();
+                HeapDumpService.InstanceInfo instance = heapDumpService.getInstanceById(id);
+                if (instance == null) return errorResult("Instance not found: " + id);
+                
+                StringBuilder sb = new StringBuilder();
+                sb.append(String.format("Instance ID: %d%n", instance.instanceId));
+                sb.append(String.format("Class: %s%n", instance.className));
+                sb.append(String.format("Size: %d%n", instance.size));
+                sb.append(String.format("Retained Size: %d%n", instance.retainedSize));
+                sb.append("Field Values:\n");
+                for (int i = 0; i < instance.fields.size(); i++) {
+                    sb.append(String.format("  [%d]: %s%n", i, instance.fields.get(i)));
+                }
+                
+                return McpSchema.CallToolResult.builder()
+                        .content(List.of(new McpSchema.TextContent(sb.toString())))
+                        .isError(false)
+                        .build();
+            } catch (Exception e) {
+                return errorResult(e.getMessage());
+            }
+        });
+    }
+
+    public SyncToolSpecification getJavaClassesByRegExpTool() {
+        McpSchema.JsonSchema regexpSchema = new McpSchema.JsonSchema(
+                "string",
+                null,
+                null,
+                false, null, null
+        );
+
+        McpSchema.JsonSchema inputSchema = new McpSchema.JsonSchema(
+                "object",
+                Map.of("regexp", regexpSchema),
                 List.of("regexp"),
                 false, null, null
         );
@@ -291,11 +503,25 @@ public class HeapDumpTools {
     }
 
     public SyncToolSpecification executeOqlTool() {
+        McpSchema.JsonSchema querySchema = new McpSchema.JsonSchema(
+                "string",
+                null,
+                null,
+                false, null, null
+        );
+
+        McpSchema.JsonSchema maxResultsSchema = new McpSchema.JsonSchema(
+                "integer",
+                null,
+                null,
+                false, null, null
+        );
+
         McpSchema.JsonSchema inputSchema = new McpSchema.JsonSchema(
                 "object",
                 Map.of(
-                        "query", String.class,
-                        "max_results", Integer.class
+                        "query", querySchema,
+                        "max_results", maxResultsSchema
                 ),
                 List.of("query"),
                 false, null, null
@@ -312,8 +538,8 @@ public class HeapDumpTools {
         return new SyncToolSpecification(tool, (exchange, args) -> {
             try {
                 String query = (String) args.get("query");
-                Integer maxResultsObj = (Integer) args.get("max_results");
-                int maxResults = (maxResultsObj != null) ? maxResultsObj : 100;
+                Number maxResultsObj = (Number) args.get("max_results");
+                int maxResults = (maxResultsObj != null) ? maxResultsObj.intValue() : 100;
 
                 String result = heapDumpService.executeOql(query, maxResults);
                 return McpSchema.CallToolResult.builder()
@@ -341,11 +567,25 @@ public class HeapDumpTools {
     public McpServerFeatures.SyncToolSpecification analyzeHeapTool() {
         // 1. Define Input Schema
         // Arguments: file_path (string, required), limit (integer, optional, default 10)
+        McpSchema.JsonSchema filePathSchema = new McpSchema.JsonSchema(
+                "string",
+                null,
+                null,
+                false, null, null
+        );
+
+        McpSchema.JsonSchema limitSchema = new McpSchema.JsonSchema(
+                "integer",
+                null,
+                null,
+                false, null, null
+        );
+
         McpSchema.JsonSchema inputSchema = new McpSchema.JsonSchema(
                 "object",
                 Map.of(
-                    "file_path", String.class,
-                    "limit", Integer.class
+                    "file_path", filePathSchema,
+                    "limit", limitSchema
                 ),
                 List.of("file_path"), // required fields
                 false,
@@ -368,8 +608,8 @@ public class HeapDumpTools {
                 String filePath = (String) args.get("file_path");
                 
                 // Handle optional 'limit' argument
-                Integer limitObj = (Integer) args.get("limit");
-                int limit = (limitObj != null) ? limitObj : 10;
+                Number limitObj = (Number) args.get("limit");
+                int limit = (limitObj != null) ? limitObj.intValue() : 10;
 
                 // Call Domain Layer
                 List<HeapDumpService.ClassStats> stats = heapDumpService.getTopClasses(filePath, limit);

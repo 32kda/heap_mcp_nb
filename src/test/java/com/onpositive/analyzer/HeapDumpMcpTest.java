@@ -35,10 +35,10 @@ public class HeapDumpMcpTest {
     }
 
     @Test
-    void testGetAllClasses() {
+    void testGetClassesByMaxInstancesCount() {
         tools.loadHeapTool().call().apply(null, Map.of("file_path", samplePath));
         
-        McpSchema.CallToolResult result = tools.getAllClassesTool().call().apply(null, Map.of());
+        McpSchema.CallToolResult result = tools.getClassesByMaxInstancesCountTool().call().apply(null, Map.of("from", 0, "to", 50));
         assertFalse(result.isError());
         String content = ((McpSchema.TextContent) result.content().get(0)).text();
         assertFalse(content.isEmpty(), "Class list should not be empty");
@@ -121,7 +121,7 @@ public class HeapDumpMcpTest {
     void testChainedOperationsLoadGetClassesSummary() {
         tools.loadHeapTool().call().apply(null, Map.of("file_path", samplePath));
         
-        McpSchema.CallToolResult classesResult = tools.getAllClassesTool().call().apply(null, Map.of());
+        McpSchema.CallToolResult classesResult = tools.getClassesByMaxInstancesCountTool().call().apply(null, Map.of("from", 0, "to", 50));
         assertFalse(classesResult.isError());
         
         McpSchema.CallToolResult summaryResult = tools.getSummaryTool().call().apply(null, Map.of());
