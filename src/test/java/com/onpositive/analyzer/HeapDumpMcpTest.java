@@ -27,7 +27,8 @@ public class HeapDumpMcpTest {
 
     @Test
     void testLoadHeapAndGetSummary() {
-        McpSchema.CallToolResult result = tools.loadHeapTool().call().apply(null, Map.of("file_path", samplePath));
+        McpSchema.CallToolRequest request = new McpSchema.CallToolRequest("load_heap", Map.of("file_path", samplePath));
+        McpSchema.CallToolResult result = tools.loadHeapTool().callHandler().apply(null, request);
         assertFalse(result.isError());
         String content = ((McpSchema.TextContent) result.content().get(0)).text();
         assertTrue(content.contains("Total Instances"), "Summary should contain Total Instances");
@@ -36,9 +37,11 @@ public class HeapDumpMcpTest {
 
     @Test
     void testGetClassesByMaxInstancesCount() {
-        tools.loadHeapTool().call().apply(null, Map.of("file_path", samplePath));
+        McpSchema.CallToolRequest loadRequest = new McpSchema.CallToolRequest("load_heap", Map.of("file_path", samplePath));
+        tools.loadHeapTool().callHandler().apply(null, loadRequest);
         
-        McpSchema.CallToolResult result = tools.getClassesByMaxInstancesCountTool().call().apply(null, Map.of("from", 0, "to", 50));
+        McpSchema.CallToolRequest request = new McpSchema.CallToolRequest("get_classes_by_max_instances_count", Map.of("from", 0, "to", 50));
+        McpSchema.CallToolResult result = tools.getClassesByMaxInstancesCountTool().callHandler().apply(null, request);
         assertFalse(result.isError());
         String content = ((McpSchema.TextContent) result.content().get(0)).text();
         assertFalse(content.isEmpty(), "Class list should not be empty");
@@ -47,9 +50,11 @@ public class HeapDumpMcpTest {
 
     @Test
     void testGetGCRootsAfterLoad() {
-        tools.loadHeapTool().call().apply(null, Map.of("file_path", samplePath));
+        McpSchema.CallToolRequest loadRequest = new McpSchema.CallToolRequest("load_heap", Map.of("file_path", samplePath));
+        tools.loadHeapTool().callHandler().apply(null, loadRequest);
         
-        McpSchema.CallToolResult result = tools.getGCRootsTool().call().apply(null, Map.of());
+        McpSchema.CallToolRequest request = new McpSchema.CallToolRequest("get_gc_roots", Map.of());
+        McpSchema.CallToolResult result = tools.getGCRootsTool().callHandler().apply(null, request);
         assertFalse(result.isError());
         String content = ((McpSchema.TextContent) result.content().get(0)).text();
         assertNotNull(content);
@@ -57,9 +62,11 @@ public class HeapDumpMcpTest {
 
     @Test
     void testGetClassByNameAfterLoad() {
-        tools.loadHeapTool().call().apply(null, Map.of("file_path", samplePath));
+        McpSchema.CallToolRequest loadRequest = new McpSchema.CallToolRequest("load_heap", Map.of("file_path", samplePath));
+        tools.loadHeapTool().callHandler().apply(null, loadRequest);
         
-        McpSchema.CallToolResult result = tools.getJavaClassByNameTool().call().apply(null, Map.of("name", "java.lang.String"));
+        McpSchema.CallToolRequest request = new McpSchema.CallToolRequest("get_class_by_name", Map.of("name", "java.lang.String"));
+        McpSchema.CallToolResult result = tools.getJavaClassByNameTool().callHandler().apply(null, request);
         assertFalse(result.isError());
         String content = ((McpSchema.TextContent) result.content().get(0)).text();
         assertTrue(content.contains("java.lang.String"));
@@ -68,9 +75,9 @@ public class HeapDumpMcpTest {
 
     @Test
     void testGetClassesByRegexpAfterLoad() {
-        tools.loadHeapTool().call().apply(null, Map.of("file_path", samplePath));
+        tools.loadHeapTool().callHandler().apply(null, new McpSchema.CallToolRequest("load_heap", Map.of("file_path", samplePath)));
         
-        McpSchema.CallToolResult result = tools.getJavaClassesByRegExpTool().call().apply(null, Map.of("regexp", "java\\.util\\..*"));
+        McpSchema.CallToolResult result = tools.getJavaClassesByRegExpTool().callHandler().apply(null, new McpSchema.CallToolRequest("get_classes_by_regexp", Map.of("regexp", "java\\.util\\..*")));
         assertFalse(result.isError());
         String content = ((McpSchema.TextContent) result.content().get(0)).text();
         assertTrue(content.contains("java.util."));
@@ -78,9 +85,9 @@ public class HeapDumpMcpTest {
 
     @Test
     void testGetSummaryAfterLoad() {
-        tools.loadHeapTool().call().apply(null, Map.of("file_path", samplePath));
+        tools.loadHeapTool().callHandler().apply(null, new McpSchema.CallToolRequest("load_heap", Map.of("file_path", samplePath)));
         
-        McpSchema.CallToolResult result = tools.getSummaryTool().call().apply(null, Map.of());
+        McpSchema.CallToolResult result = tools.getSummaryTool().callHandler().apply(null, new McpSchema.CallToolRequest("get_summary", Map.of()));
         assertFalse(result.isError());
         String content = ((McpSchema.TextContent) result.content().get(0)).text();
         assertTrue(content.contains("Total Instances"));
@@ -89,9 +96,9 @@ public class HeapDumpMcpTest {
 
     @Test
     void testGetSystemPropertiesAfterLoad() {
-        tools.loadHeapTool().call().apply(null, Map.of("file_path", samplePath));
+        tools.loadHeapTool().callHandler().apply(null, new McpSchema.CallToolRequest("load_heap", Map.of("file_path", samplePath)));
         
-        McpSchema.CallToolResult result = tools.getSystemPropertiesTool().call().apply(null, Map.of());
+        McpSchema.CallToolResult result = tools.getSystemPropertiesTool().callHandler().apply(null, new McpSchema.CallToolRequest("get_system_properties", Map.of()));
         assertFalse(result.isError());
         String content = ((McpSchema.TextContent) result.content().get(0)).text();
         assertNotNull(content);
@@ -99,10 +106,10 @@ public class HeapDumpMcpTest {
 
     @Test
     void testAnalyzeHeapDump() {
-        McpSchema.CallToolResult result = tools.analyzeHeapTool().call().apply(null, Map.of(
+        McpSchema.CallToolResult result = tools.analyzeHeapTool().callHandler().apply(null, new McpSchema.CallToolRequest("analyze_heap_dump", Map.of(
                 "file_path", samplePath,
                 "limit", 5
-        ));
+        )));
         assertFalse(result.isError());
         String content = ((McpSchema.TextContent) result.content().get(0)).text();
         assertTrue(content.contains("Top"));
@@ -111,33 +118,33 @@ public class HeapDumpMcpTest {
 
     @Test
     void testGetJavaClassByIdAfterLoad() {
-        tools.loadHeapTool().call().apply(null, Map.of("file_path", samplePath));
+        tools.loadHeapTool().callHandler().apply(null, new McpSchema.CallToolRequest("load_heap", Map.of("file_path", samplePath)));
         
-        McpSchema.CallToolResult result = tools.getJavaClassByIdTool().call().apply(null, Map.of("id", 1L));
+        McpSchema.CallToolResult result = tools.getJavaClassByIdTool().callHandler().apply(null, new McpSchema.CallToolRequest("get_class_by_id", Map.of("id", 1L)));
         assertTrue(result.isError() || !result.isError());
     }
 
     @Test
     void testChainedOperationsLoadGetClassesSummary() {
-        tools.loadHeapTool().call().apply(null, Map.of("file_path", samplePath));
+        tools.loadHeapTool().callHandler().apply(null, new McpSchema.CallToolRequest("load_heap", Map.of("file_path", samplePath)));
         
-        McpSchema.CallToolResult classesResult = tools.getClassesByMaxInstancesCountTool().call().apply(null, Map.of("from", 0, "to", 50));
+        McpSchema.CallToolResult classesResult = tools.getClassesByMaxInstancesCountTool().callHandler().apply(null, new McpSchema.CallToolRequest("get_classes_by_max_instances_count", Map.of("from", 0, "to", 50)));
         assertFalse(classesResult.isError());
         
-        McpSchema.CallToolResult summaryResult = tools.getSummaryTool().call().apply(null, Map.of());
+        McpSchema.CallToolResult summaryResult = tools.getSummaryTool().callHandler().apply(null, new McpSchema.CallToolRequest("get_summary", Map.of()));
         assertFalse(summaryResult.isError());
         
-        McpSchema.CallToolResult gcRootsResult = tools.getGCRootsTool().call().apply(null, Map.of());
+        McpSchema.CallToolResult gcRootsResult = tools.getGCRootsTool().callHandler().apply(null, new McpSchema.CallToolRequest("get_gc_roots", Map.of()));
         assertFalse(gcRootsResult.isError());
     }
 
     @Test
     void testMultipleLoadsReturnConsistentResults() {
-        McpSchema.CallToolResult result1 = tools.loadHeapTool().call().apply(null, Map.of("file_path", samplePath));
+        McpSchema.CallToolResult result1 = tools.loadHeapTool().callHandler().apply(null, new McpSchema.CallToolRequest("load_heap", Map.of("file_path", samplePath)));
         assertFalse(result1.isError());
         String content1 = ((McpSchema.TextContent) result1.content().get(0)).text();
         
-        McpSchema.CallToolResult result2 = tools.loadHeapTool().call().apply(null, Map.of("file_path", samplePath));
+        McpSchema.CallToolResult result2 = tools.loadHeapTool().callHandler().apply(null, new McpSchema.CallToolRequest("load_heap", Map.of("file_path", samplePath)));
         assertFalse(result2.isError());
         String content2 = ((McpSchema.TextContent) result2.content().get(0)).text();
         
@@ -146,17 +153,17 @@ public class HeapDumpMcpTest {
 
     @Test
     void testGetClassByNameNonExistent() {
-        tools.loadHeapTool().call().apply(null, Map.of("file_path", samplePath));
+        tools.loadHeapTool().callHandler().apply(null, new McpSchema.CallToolRequest("load_heap", Map.of("file_path", samplePath)));
         
-        McpSchema.CallToolResult result = tools.getJavaClassByNameTool().call().apply(null, Map.of("name", "com.nonexistent.Class"));
+        McpSchema.CallToolResult result = tools.getJavaClassByNameTool().callHandler().apply(null, new McpSchema.CallToolRequest("get_class_by_name", Map.of("name", "com.nonexistent.Class")));
         assertTrue(result.isError(), "Should return error for non-existent class");
     }
 
     @Test
     void testGetClassesByRegexpNoMatch() {
-        tools.loadHeapTool().call().apply(null, Map.of("file_path", samplePath));
+        tools.loadHeapTool().callHandler().apply(null, new McpSchema.CallToolRequest("load_heap", Map.of("file_path", samplePath)));
         
-        McpSchema.CallToolResult result = tools.getJavaClassesByRegExpTool().call().apply(null, Map.of("regexp", "^[xyz].*"));
+        McpSchema.CallToolResult result = tools.getJavaClassesByRegExpTool().callHandler().apply(null, new McpSchema.CallToolRequest("get_classes_by_regexp", Map.of("regexp", "^[xyz].*")));
         assertFalse(result.isError());
         String content = ((McpSchema.TextContent) result.content().get(0)).text();
         assertTrue(content.isEmpty() || !content.contains("java."), "Should not contain java classes for regex ^[xyz].*");

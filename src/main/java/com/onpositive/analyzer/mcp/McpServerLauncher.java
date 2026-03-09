@@ -1,12 +1,12 @@
 package com.onpositive.analyzer.mcp;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.onpositive.analyzer.HeapDumpService;
-import io.modelcontextprotocol.json.jackson2.JacksonMcpJsonMapper;
+import io.modelcontextprotocol.json.jackson3.JacksonMcpJsonMapper;
 import io.modelcontextprotocol.server.McpServer;
 import io.modelcontextprotocol.server.McpSyncServer;
 import io.modelcontextprotocol.server.transport.StdioServerTransportProvider;
 import io.modelcontextprotocol.spec.McpSchema;
+import tools.jackson.databind.json.JsonMapper;
 
 public class McpServerLauncher {
 
@@ -17,7 +17,7 @@ public class McpServerLauncher {
         // 2. Initialize MCP Adapter Layer
         HeapDumpTools heapDumpTools = new HeapDumpTools(heapDumpService);
 
-        JacksonMcpJsonMapper jsonMapper = new JacksonMcpJsonMapper(new ObjectMapper());
+        JacksonMcpJsonMapper jsonMapper = new JacksonMcpJsonMapper(JsonMapper.builder().build());
         StdioServerTransportProvider transportProvider = new StdioServerTransportProvider(
                 jsonMapper);
 

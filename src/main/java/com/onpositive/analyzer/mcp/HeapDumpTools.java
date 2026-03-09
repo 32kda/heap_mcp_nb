@@ -52,8 +52,9 @@ public class HeapDumpTools {
                 null, null, null
         );
 
-        return new SyncToolSpecification(tool, (exchange, args) -> {
+        return new SyncToolSpecification(tool, (exchange, request) -> {
             try {
+                Map<String, Object> args = request.arguments();
                 String filePath = (String) args.get("file_path");
                 HeapSummary summary = heapDumpService.loadHeap(filePath);
                 return McpSchema.CallToolResult.builder()
@@ -96,7 +97,8 @@ public class HeapDumpTools {
                 null, null, null
         );
 
-        return new SyncToolSpecification(tool, (exchange, args) -> {
+        return new SyncToolSpecification(tool, (exchange, request) -> {
+            Map<String, Object> args = request.arguments();
             try {
                 Number fromObj = (Number) args.get("from");
                 Number toObj = (Number) args.get("to");
@@ -147,7 +149,8 @@ public class HeapDumpTools {
                 null, null, null
         );
 
-        return new SyncToolSpecification(tool, (exchange, args) -> {
+        return new SyncToolSpecification(tool, (exchange, request) -> {
+            Map<String, Object> args = request.arguments();
             try {
                 Number fromObj = (Number) args.get("from");
                 Number toObj = (Number) args.get("to");
@@ -191,7 +194,8 @@ public class HeapDumpTools {
                 null, null, null
         );
 
-        return new SyncToolSpecification(tool, (exchange, args) -> {
+        return new SyncToolSpecification(tool, (exchange, request) -> {
+            Map<String, Object> args = request.arguments();
             try {
                 int limit = ((Number) args.get("limit")).intValue();
                 List<Instance> instances = heapDumpService.getBiggestObjectsByRetainedSize(limit);
@@ -219,7 +223,8 @@ public class HeapDumpTools {
                 null, null, null
         );
 
-        return new SyncToolSpecification(tool, (exchange, args) -> {
+        return new SyncToolSpecification(tool, (exchange, request) -> {
+            Map<String, Object> args = request.arguments();
             try {
                 Collection<GCRoot> roots = heapDumpService.getGCRoots();
                 String result = roots.stream()
@@ -266,7 +271,8 @@ public class HeapDumpTools {
                 null, null, null
         );
 
-        return new SyncToolSpecification(tool, (exchange, args) -> {
+        return new SyncToolSpecification(tool, (exchange, request) -> {
+            Map<String, Object> args = request.arguments();
             try {
                 Number fromObj = (Number) args.get("from");
                 Number toObj = (Number) args.get("to");
@@ -310,7 +316,8 @@ public class HeapDumpTools {
                 null, null, null
         );
 
-        return new SyncToolSpecification(tool, (exchange, args) -> {
+        return new SyncToolSpecification(tool, (exchange, request) -> {
+            Map<String, Object> args = request.arguments();
             try {
                 String name = (String) args.get("name");
                 JavaClass cls = heapDumpService.getJavaClassByName(name);
@@ -350,7 +357,8 @@ public class HeapDumpTools {
                 null, null, null
         );
 
-        return new SyncToolSpecification(tool, (exchange, args) -> {
+        return new SyncToolSpecification(tool, (exchange, request) -> {
+            Map<String, Object> args = request.arguments();
             try {
                 long id = ((Number) args.get("id")).longValue();
                 JavaClass cls = heapDumpService.getJavaClassById(id);
@@ -390,7 +398,8 @@ public class HeapDumpTools {
                 null, null, null
         );
 
-        return new SyncToolSpecification(tool, (exchange, args) -> {
+        return new SyncToolSpecification(tool, (exchange, request) -> {
+            Map<String, Object> args = request.arguments();
             try {
                 long id = ((Number) args.get("id")).longValue();
                 HeapDumpService.InstanceInfo instance = heapDumpService.getInstanceById(id);
@@ -439,7 +448,8 @@ public class HeapDumpTools {
                 null, null, null
         );
 
-        return new SyncToolSpecification(tool, (exchange, args) -> {
+        return new SyncToolSpecification(tool, (exchange, request) -> {
+            Map<String, Object> args = request.arguments();
             try {
                 String regexp = (String) args.get("regexp");
                 Collection<JavaClass> classes = heapDumpService.getJavaClassesByRegExp(regexp);
@@ -465,7 +475,8 @@ public class HeapDumpTools {
                 null, null, null
         );
 
-        return new SyncToolSpecification(tool, (exchange, args) -> {
+        return new SyncToolSpecification(tool, (exchange, request) -> {
+            Map<String, Object> args = request.arguments();
             try {
                 HeapSummary summary = heapDumpService.getSummary();
                 return McpSchema.CallToolResult.builder()
@@ -487,7 +498,8 @@ public class HeapDumpTools {
                 null, null, null
         );
 
-        return new SyncToolSpecification(tool, (exchange, args) -> {
+        return new SyncToolSpecification(tool, (exchange, request) -> {
+            Map<String, Object> args = request.arguments();
             try {
                 Properties props = heapDumpService.getSystemProperties();
                 StringBuilder sb = new StringBuilder();
@@ -535,7 +547,8 @@ public class HeapDumpTools {
                 null, null, null
         );
 
-        return new SyncToolSpecification(tool, (exchange, args) -> {
+        return new SyncToolSpecification(tool, (exchange, request) -> {
+            Map<String, Object> args = request.arguments();
             try {
                 String query = (String) args.get("query");
                 Number maxResultsObj = (Number) args.get("max_results");
@@ -603,7 +616,8 @@ public class HeapDumpTools {
         );
 
         // 3. Define Execution Logic (Handler)
-        return new McpServerFeatures.SyncToolSpecification(tool, (exchange, args) -> {
+        return new McpServerFeatures.SyncToolSpecification(tool, (exchange, request) -> {
+            Map<String, Object> args = request.arguments();
             try {
                 String filePath = (String) args.get("file_path");
                 
