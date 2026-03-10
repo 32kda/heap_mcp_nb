@@ -35,6 +35,7 @@ public class McpServerLauncher {
                         heapDumpTools.getBiggestObjectsTool(),
                         heapDumpTools.getGCRootsTool(),
                         heapDumpTools.getInstanceByIdTool(),
+                        heapDumpTools.getAllReferencesTool(),
                         heapDumpTools.getJavaClassByNameTool(),
                         heapDumpTools.getJavaClassesByRegExpTool(),
                         heapDumpTools.getJavaClassByIdTool(),

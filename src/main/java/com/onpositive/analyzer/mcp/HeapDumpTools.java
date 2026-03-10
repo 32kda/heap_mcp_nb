@@ -1,6 +1,8 @@
 package com.onpositive.analyzer.mcp;
 
 import com.onpositive.analyzer.HeapDumpService;
+import com.onpositive.analyzer.JavaClassPrinter;
+import com.onpositive.analyzer.JavaClassPrinter.ClassDetails;
 import io.modelcontextprotocol.server.McpServerFeatures;
 import io.modelcontextprotocol.server.McpServerFeatures.SyncToolSpecification;
 import io.modelcontextprotocol.spec.McpSchema;
@@ -322,8 +324,8 @@ public class HeapDumpTools {
                 String name = (String) args.get("name");
                 JavaClass cls = heapDumpService.getJavaClassByName(name);
                 if (cls == null) return errorResult("Class not found: " + name);
-                String info = String.format("Name: %s\nInstances: %d\nTotal Size: %d",
-                        cls.getName(), cls.getInstancesCount(), cls.getAllInstancesSize());
+                ClassDetails details = JavaClassPrinter.getClassDetails(cls);
+                String info = JavaClassPrinter.printClassDetails(details);
                 return McpSchema.CallToolResult.builder()
                         .content(List.of(new McpSchema.TextContent(info)))
                         .isError(false)
@@ -363,8 +365,8 @@ public class HeapDumpTools {
                 long id = ((Number) args.get("id")).longValue();
                 JavaClass cls = heapDumpService.getJavaClassById(id);
                 if (cls == null) return errorResult("Class not found: " + id);
-                String info = String.format("Name: %s\nInstances: %d\nTotal Size: %d",
-                        cls.getName(), cls.getInstancesCount(), cls.getAllInstancesSize());
+                ClassDetails details = JavaClassPrinter.getClassDetails(cls);
+                String info = JavaClassPrinter.printClassDetails(details);
                 return McpSchema.CallToolResult.builder()
                         .content(List.of(new McpSchema.TextContent(info)))
                         .isError(false)
@@ -411,12 +413,76 @@ public class HeapDumpTools {
                 sb.append(String.format("Size: %d%n", instance.size));
                 sb.append(String.format("Retained Size: %d%n", instance.retainedSize));
                 sb.append("Field Values:\n");
-                for (int i = 0; i < instance.fields.size(); i++) {
-                    sb.append(String.format("  [%d]: %s%n", i, instance.fields.get(i)));
+                for (HeapDumpService.FieldInfo field : instance.fields) {
+                    if (field.objectInstanceId != null) {
+                        sb.append(String.format("  %s: %s (Instance ID: %d)%n", field.name, field.value, field.objectInstanceId));
+                    } else {
+                        sb.append(String.format("  %s: %s%n", field.name, field.value));
+                    }
                 }
                 
                 return McpSchema.CallToolResult.builder()
                         .content(List.of(new McpSchema.TextContent(sb.toString())))
+                        .isError(false)
+                        .build();
+            } catch (Exception e) {
+                return errorResult(e.getMessage());
+            }
+        });
+    }
+
+    public SyncToolSpecification getAllReferencesTool() {
+        McpSchema.JsonSchema idSchema = new McpSchema.JsonSchema(
+                "integer",
+                null,
+                null,
+                false, null, null
+        );
+
+        McpSchema.JsonSchema fromSchema = new McpSchema.JsonSchema(
+                "integer",
+                null,
+                null,
+                false, null, null
+        );
+
+        McpSchema.JsonSchema toSchema = new McpSchema.JsonSchema(
+                "integer",
+                null,
+                null,
+                false, null, null
+        );
+
+        McpSchema.JsonSchema inputSchema = new McpSchema.JsonSchema(
+                "object",
+                Map.of("id", idSchema, "from", fromSchema, "to", toSchema),
+                List.of("id"),
+                false, null, null
+        );
+
+        McpSchema.Tool tool = new McpSchema.Tool(
+                "get_all_references",
+                "Get All References",
+                "Returns all references to an instance by its ID with pagination.",
+                inputSchema,
+                null, null, null
+        );
+
+        return new SyncToolSpecification(tool, (exchange, request) -> {
+            Map<String, Object> args = request.arguments();
+            try {
+                long id = ((Number) args.get("id")).longValue();
+                Number fromObj = (Number) args.get("from");
+                Number toObj = (Number) args.get("to");
+                int from = (fromObj != null) ? fromObj.intValue() : 0;
+                int to = (toObj != null) ? toObj.intValue() : 50;
+
+                List<HeapDumpService.ReferenceInfo> refs = heapDumpService.getAllReferences(id, from, to);
+                String result = refs.stream()
+                        .map(ref -> "Instance ID: " + ref.instanceId + ", Class: " + ref.className)
+                        .collect(Collectors.joining("\n"));
+                return McpSchema.CallToolResult.builder()
+                        .content(List.of(new McpSchema.TextContent(result)))
                         .isError(false)
                         .build();
             } catch (Exception e) {
@@ -433,9 +499,23 @@ public class HeapDumpTools {
                 false, null, null
         );
 
+        McpSchema.JsonSchema fromSchema = new McpSchema.JsonSchema(
+                "integer",
+                null,
+                null,
+                false, null, null
+        );
+
+        McpSchema.JsonSchema toSchema = new McpSchema.JsonSchema(
+                "integer",
+                null,
+                null,
+                false, null, null
+        );
+
         McpSchema.JsonSchema inputSchema = new McpSchema.JsonSchema(
                 "object",
-                Map.of("regexp", regexpSchema),
+                Map.of("regexp", regexpSchema, "from", fromSchema, "to", toSchema),
                 List.of("regexp"),
                 false, null, null
         );
@@ -443,7 +523,7 @@ public class HeapDumpTools {
         McpSchema.Tool tool = new McpSchema.Tool(
                 "get_classes_by_regexp",
                 "Get Classes By RegExp",
-                "Returns classes matching the regular expression.",
+                "Returns classes matching the regular expression with pagination.",
                 inputSchema,
                 null, null, null
         );
@@ -452,7 +532,12 @@ public class HeapDumpTools {
             Map<String, Object> args = request.arguments();
             try {
                 String regexp = (String) args.get("regexp");
-                Collection<JavaClass> classes = heapDumpService.getJavaClassesByRegExp(regexp);
+                Number fromObj = (Number) args.get("from");
+                Number toObj = (Number) args.get("to");
+                int from = (fromObj != null) ? fromObj.intValue() : 0;
+                int to = (toObj != null) ? toObj.intValue() : 50;
+
+                List<JavaClass> classes = heapDumpService.getJavaClassesByRegExpPaginated(regexp, from, to);
                 String result = classes.stream()
                         .map(cls -> cls.getName() + " (Instances: " + cls.getInstancesCount() + ")")
                         .collect(Collectors.joining("\n"));

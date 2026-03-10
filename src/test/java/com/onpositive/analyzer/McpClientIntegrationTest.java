@@ -94,4 +94,30 @@ public class McpClientIntegrationTest {
         assertFalse(content.isEmpty());
         assertTrue(content.contains("java.lang.String") || content.contains("char[]") || content.contains("byte[]"));
     }
+
+    @Test
+    void testGetClassesByRegexpPaginated() {
+        client.callTool(new McpSchema.CallToolRequest("load_heap", Map.of("file_path", samplePath)));
+        
+        McpSchema.CallToolResult result = client.callTool(
+                new McpSchema.CallToolRequest("get_classes_by_regexp", Map.of("regexp", "java\\.util\\..*", "from", 0, "to", 10))
+        );
+        
+        assertFalse(result.isError());
+        String content = ((McpSchema.TextContent) result.content().get(0)).text();
+        assertTrue(content.contains("java.util."));
+    }
+
+    @Test
+    void testGetClassesByRegexpWithDefaults() {
+        client.callTool(new McpSchema.CallToolRequest("load_heap", Map.of("file_path", samplePath)));
+        
+        McpSchema.CallToolResult result = client.callTool(
+                new McpSchema.CallToolRequest("get_classes_by_regexp", Map.of("regexp", "java\\..*"))
+        );
+        
+        assertFalse(result.isError());
+        String content = ((McpSchema.TextContent) result.content().get(0)).text();
+        assertTrue(content.contains("java."));
+    }
 }

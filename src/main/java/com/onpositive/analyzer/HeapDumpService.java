@@ -1,11 +1,14 @@
 package com.onpositive.analyzer;
 
+import com.onpositive.analyzer.util.LRUCache;
 import org.netbeans.lib.profiler.heap.Heap;
 import org.netbeans.lib.profiler.heap.HeapFactory;
 import org.netbeans.lib.profiler.heap.JavaClass;
 import org.netbeans.lib.profiler.heap.HeapSummary;
 import org.netbeans.lib.profiler.heap.Instance;
 import org.netbeans.lib.profiler.heap.GCRoot;
+import org.netbeans.lib.profiler.heap.FieldValue;
+import org.netbeans.lib.profiler.heap.ObjectFieldValue;
 import org.netbeans.modules.profiler.oql.engine.api.OQLEngine;
 
 import java.io.File;
@@ -23,6 +26,7 @@ public class HeapDumpService {
     private OQLEngine oqlEngine;
     private List<ClassStats> classesSortedByCount;
     private List<ClassStats> classesSortedBySize;
+    private LRUCache<String, List<JavaClass>> classesByRegexp = new LRUCache<>(10);
 
     public static class ClassStats {
         public String className;
@@ -129,9 +133,9 @@ public class HeapDumpService {
         public String className;
         public long size;
         public long retainedSize;
-        public List<String> fields;
+        public List<FieldInfo> fields;
 
-        public InstanceInfo(long instanceId, String className, long size, long retainedSize, List<String> fields) {
+        public InstanceInfo(long instanceId, String className, long size, long retainedSize, List<FieldInfo> fields) {
             this.instanceId = instanceId;
             this.className = className;
             this.size = size;
@@ -140,14 +144,39 @@ public class HeapDumpService {
         }
     }
 
+    public static class FieldInfo {
+        public String name;
+        public String value;
+        public Long objectInstanceId;
+
+        public FieldInfo(String name, String value, Long objectInstanceId) {
+            this.name = name;
+            this.value = value;
+            this.objectInstanceId = objectInstanceId;
+        }
+    }
+
     public InstanceInfo getInstanceById(long id) {
         if (heap == null) throw new IllegalStateException("Heap not loaded");
         Instance instance = heap.getInstanceByID(id);
         if (instance == null) return null;
         
-        List<String> fields = new ArrayList<>();
-        for (Object field : instance.getFieldValues()) {
-            fields.add(String.valueOf(field));
+        List<FieldInfo> fields = new ArrayList<>();
+        for (Object fvObj : instance.getFieldValues()) {
+            FieldValue fv = (FieldValue) fvObj;
+            String fieldName = fv.getField().getName();
+            String valueStr = String.valueOf(fv.getValue());
+            Long objectInstanceId = null;
+            
+            if (fv instanceof ObjectFieldValue) {
+                ObjectFieldValue ofv = (ObjectFieldValue) fv;
+                Instance refInstance = ofv.getInstance();
+                if (refInstance != null) {
+                    objectInstanceId = refInstance.getInstanceId();
+                }
+            }
+            
+            fields.add(new FieldInfo(fieldName, valueStr, objectInstanceId));
         }
         
         return new InstanceInfo(
@@ -159,9 +188,57 @@ public class HeapDumpService {
         );
     }
 
+    public static class ReferenceInfo {
+        public long instanceId;
+        public String className;
+        public String fieldName;
+
+        public ReferenceInfo(long instanceId, String className, String fieldName) {
+            this.instanceId = instanceId;
+            this.className = className;
+            this.fieldName = fieldName;
+        }
+    }
+
+    public List<ReferenceInfo> getAllReferences(long instanceId, int from, int to) {
+        if (heap == null) throw new IllegalStateException("Heap not loaded");
+        Instance instance = heap.getInstanceByID(instanceId);
+        if (instance == null) return new ArrayList<>();
+        
+        Collection<Instance> references = instance.getReferences();
+        List<Instance> refsList = new ArrayList<>(references);
+        int safeTo = Math.min(to, refsList.size());
+        int safeFrom = Math.min(from, safeTo);
+        
+        List<ReferenceInfo> result = new ArrayList<>();
+        for (Instance ref : refsList.subList(safeFrom, safeTo)) {
+            result.add(new ReferenceInfo(
+                    ref.getInstanceId(),
+                    ref.getJavaClass().getName(),
+                    null
+            ));
+        }
+        return result;
+    }
+
     public Collection<JavaClass> getJavaClassesByRegExp(String regexp) {
         if (heap == null) throw new IllegalStateException("Heap not loaded");
-        return heap.getJavaClassesByRegExp(regexp);
+        List<JavaClass> classes = classesByRegexp.get(regexp);
+        if (classes == null) {
+            classes = new ArrayList<>(heap.getJavaClassesByRegExp(regexp));
+        }
+        return classes;
+    }
+
+    public List<JavaClass> getJavaClassesByRegExpPaginated(String regexp, int from, int to) {
+        if (heap == null) throw new IllegalStateException("Heap not loaded");
+        List<JavaClass> classesList = classesByRegexp.get(regexp);
+        if (classesList == null) {
+            classesList = new ArrayList<>(heap.getJavaClassesByRegExp(regexp));
+        }
+        int safeTo = Math.min(to, classesList.size());
+        int safeFrom = Math.min(from, safeTo);
+        return classesList.subList(safeFrom, safeTo);
     }
 
     public HeapSummary getSummary() {

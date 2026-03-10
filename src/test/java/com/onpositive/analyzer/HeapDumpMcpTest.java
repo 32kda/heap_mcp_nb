@@ -71,6 +71,8 @@ public class HeapDumpMcpTest {
         String content = ((McpSchema.TextContent) result.content().get(0)).text();
         assertTrue(content.contains("java.lang.String"));
         assertTrue(content.contains("Instances:"));
+        assertTrue(content.contains("Total Size:"));
+        assertTrue(content.contains("Fields:") || content.contains("Static Fields:"));
     }
 
     @Test
@@ -121,7 +123,11 @@ public class HeapDumpMcpTest {
         tools.loadHeapTool().callHandler().apply(null, new McpSchema.CallToolRequest("load_heap", Map.of("file_path", samplePath)));
         
         McpSchema.CallToolResult result = tools.getJavaClassByIdTool().callHandler().apply(null, new McpSchema.CallToolRequest("get_class_by_id", Map.of("id", 1L)));
-        assertTrue(result.isError() || !result.isError());
+        if (!result.isError()) {
+            String content = ((McpSchema.TextContent) result.content().get(0)).text();
+            assertTrue(content.contains("Instances:"));
+            assertTrue(content.contains("Total Size:"));
+        }
     }
 
     @Test
