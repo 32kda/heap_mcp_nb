@@ -13,6 +13,7 @@ import org.netbeans.lib.profiler.heap.JavaClass;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -202,9 +203,21 @@ public class HeapDumpTools {
                 int limit = ((Number) args.get("limit")).intValue();
                 List<Instance> instances = heapDumpService.getBiggestObjectsByRetainedSize(limit);
                 StringBuilder sb = new StringBuilder();
+                int count = 0;
                 for (Instance inst : instances) {
-                    sb.append(String.format("ID: %d, Class: %s, Retained Size: %d\n",
-                            inst.getInstanceId(), inst.getJavaClass().getName(), inst.getRetainedSize()));
+                    try {
+                        long instanceId = inst.getInstanceId();
+                        String className = inst.getJavaClass().getName();
+                        long retainedSize = inst.getRetainedSize();
+                        sb.append(String.format("ID: %d, Class: %s, Retained Size: %d\n",
+                                instanceId, className, retainedSize));
+                        count++;
+                    } catch (Exception e) {
+                        // Skip objects with invalid instance references
+                    }
+                }
+                if (count == 0) {
+                    return errorResult("No valid instances found");
                 }
                 return McpSchema.CallToolResult.builder()
                         .content(List.of(new McpSchema.TextContent(sb.toString())))
@@ -217,29 +230,46 @@ public class HeapDumpTools {
     }
 
     public SyncToolSpecification getGCRootsTool() {
+        McpSchema.JsonSchema fromSchema = new McpSchema.JsonSchema(
+                "integer",
+                null,
+                null,
+                false, null, null
+        );
+
+        McpSchema.JsonSchema toSchema = new McpSchema.JsonSchema(
+                "integer",
+                null,
+                null,
+                false, null, null
+        );
+
+        McpSchema.JsonSchema inputSchema = new McpSchema.JsonSchema(
+                "object",
+                Map.of("from", fromSchema, "to", toSchema),
+                List.of(),
+                false, null, null
+        );
+
         McpSchema.Tool tool = new McpSchema.Tool(
                 "get_gc_roots",
                 "Get GC Roots",
                 "Returns the GC roots of the loaded heap.",
-                new McpSchema.JsonSchema("object", Map.of(), List.of(), false, null, null),
+                inputSchema,
                 null, null, null
         );
 
         return new SyncToolSpecification(tool, (exchange, request) -> {
             Map<String, Object> args = request.arguments();
-            try {
-                Collection<GCRoot> roots = heapDumpService.getGCRoots();
-                String result = roots.stream()
-                        .filter(root -> root.getInstance() != null)
-                        .map(root -> "ID: " + root.getInstance().getInstanceId() + ", Class: " + root.getInstance().getJavaClass().getName())
-                        .collect(Collectors.joining("\n"));
-                return McpSchema.CallToolResult.builder()
-                        .content(List.of(new McpSchema.TextContent(result)))
-                        .isError(false)
-                        .build();
-            } catch (Exception e) {
-                return errorResult(e.getMessage());
+            if (args == null) {
+                args = new HashMap<>();
+            } else {
+                args = new HashMap<>(args);
             }
+            args.putIfAbsent("from", 0);
+            args.putIfAbsent("to", 50);
+            McpSchema.CallToolRequest delegateRequest = new McpSchema.CallToolRequest("get_gc_roots_paginated", args);
+            return getGCRootsPaginatedTool().callHandler().apply(exchange, delegateRequest);
         });
     }
 

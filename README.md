@@ -50,7 +50,7 @@ Based on NetBeans Profiler library as a backend.
 | `get_instance_by_id` | Get instance details including field values and object references |
 | `get_all_references` | Get all references to an instance with pagination |
 | `get_biggest_objects` | Find largest objects by retained size |
-| `get_gc_roots` | View GC root references |
+| `get_gc_roots` | View GC root references with pagination (from, to args, defaults 0-50) |
 | `get_gc_roots_paginated` | View GC roots with pagination, including kind and instance info |
 | `get_summary` | Get heap summary statistics |
 | `get_system_properties` | Access JVM system properties |

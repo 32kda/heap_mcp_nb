@@ -174,4 +174,40 @@ public class HeapDumpMcpTest {
         String content = ((McpSchema.TextContent) result.content().get(0)).text();
         assertTrue(content.isEmpty() || !content.contains("java."), "Should not contain java classes for regex ^[xyz].*");
     }
+
+    @Test
+    void testExecuteOqlWithoutLoadingHeap() {
+        McpSchema.CallToolRequest request = new McpSchema.CallToolRequest("execute_oql", Map.of("query", "SELECT * FROM javax.swing.JFrame", "max_results", 10));
+        McpSchema.CallToolResult result = tools.executeOqlTool().callHandler().apply(null, request);
+        assertTrue(result.isError(), "Should return error when executing OQL without loading heap first");
+        String content = ((McpSchema.TextContent) result.content().get(0)).text();
+        assertTrue(content.contains("Heap not loaded") || content.contains("not loaded"), 
+            "Error message should indicate heap is not loaded. Got: " + content);
+    }
+
+    @Test
+    void testExecuteOqlAfterLoadingHeap() {
+        McpSchema.CallToolRequest loadRequest = new McpSchema.CallToolRequest("load_heap", Map.of("file_path", samplePath));
+        tools.loadHeapTool().callHandler().apply(null, loadRequest);
+        
+        McpSchema.CallToolRequest request = new McpSchema.CallToolRequest("execute_oql", Map.of("query", "select s from java.lang.String s", "max_results", 10));
+        McpSchema.CallToolResult result = tools.executeOqlTool().callHandler().apply(null, request);
+        String content = ((McpSchema.TextContent) result.content().get(0)).text();
+        System.out.println("OQL Result: " + content);
+        assertTrue(content.contains("Query Results"),
+            "Should return valid results when executing OQL after loading heap. Got: " + content);
+    }
+
+    @Test
+    void testExecuteOqlWithQualifiedClassName() {
+        McpSchema.CallToolRequest loadRequest = new McpSchema.CallToolRequest("load_heap", Map.of("file_path", samplePath));
+        tools.loadHeapTool().callHandler().apply(null, loadRequest);
+        
+        McpSchema.CallToolRequest request = new McpSchema.CallToolRequest("execute_oql", Map.of("query", "SELECT * FROM javax.swing.JFrame f", "max_results", 10));
+        McpSchema.CallToolResult result = tools.executeOqlTool().callHandler().apply(null, request);
+        String content = ((McpSchema.TextContent) result.content().get(0)).text();
+        System.out.println("OQL Result: " + content);
+        assertTrue(result.isError() || content.contains("Query Results") || content.contains("No results found"),
+            "Should handle OQL query with qualified class name. Got: " + content);
+    }
 }

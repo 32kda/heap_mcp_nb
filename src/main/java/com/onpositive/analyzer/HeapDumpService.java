@@ -221,15 +221,6 @@ public class HeapDumpService {
         return result;
     }
 
-    public Collection<JavaClass> getJavaClassesByRegExp(String regexp) {
-        if (heap == null) throw new IllegalStateException("Heap not loaded");
-        List<JavaClass> classes = classesByRegexp.get(regexp);
-        if (classes == null) {
-            classes = new ArrayList<>(heap.getJavaClassesByRegExp(regexp));
-        }
-        return classes;
-    }
-
     public List<JavaClass> getJavaClassesByRegExpPaginated(String regexp, int from, int to) {
         if (heap == null) throw new IllegalStateException("Heap not loaded");
         List<JavaClass> classesList = classesByRegexp.get(regexp);
@@ -257,10 +248,16 @@ public class HeapDumpService {
     }
 
     public String executeOql(String query, int maxResults) throws Exception {
+        if (heap == null) {
+            throw new IllegalStateException("Heap not loaded. Please load a heap dump first.");
+        }
+        
         if (oqlEngine == null) {
             oqlEngine = new OQLEngine(heap);
         }
 
+//        String convertedQuery = convertToNetBeansOql(query);
+        
         StringBuilder resultBuilder = new StringBuilder();
 
         oqlEngine.executeQuery(query, new OQLEngine.ObjectVisitor() {
@@ -292,5 +289,32 @@ public class HeapDumpService {
         }
 
         return "Query Results:\n" + resultBuilder.toString();
+    }
+    
+    private String convertToNetBeansOql(String query) {
+        query = query.trim();
+        if (query.toLowerCase().startsWith("select")) {
+            String lowerQuery = query.toLowerCase();
+            int fromIndex = lowerQuery.indexOf("from");
+            if (fromIndex > 0) {
+                int classStart = fromIndex + 5;
+                int whereIndex = lowerQuery.indexOf("where");
+                int aliasEnd = whereIndex > 0 ? whereIndex : query.length();
+                
+                String className = query.substring(classStart, aliasEnd).trim();
+                String alias = "o";
+                String whereClause = "";
+                
+                String beforeFrom = query.substring(6, fromIndex).trim();
+                if (beforeFrom.equals("*") || beforeFrom.isEmpty()) {
+                    if (whereIndex > 0) {
+                        whereClause = query.substring(whereIndex + 5).trim();
+                        return "heap.forEachObject(function(" + alias + ") { if (" + whereClause + ") { print('" + alias + "'); } }, '" + className + "')";
+                    }
+                    return "heap.forEachObject(function(" + alias + ") { print('" + alias + "'); }, '" + className + "')";
+                }
+            }
+        }
+        return query;
     }
 }

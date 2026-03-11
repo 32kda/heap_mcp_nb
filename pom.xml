@@ -31,6 +31,13 @@
             <version>RELEASE200</version>
         </dependency>
 
+        <!-- Nashorn JavaScript engine required for OQL execution -->
+        <dependency>
+            <groupId>org.openjdk.nashorn</groupId>
+            <artifactId>nashorn-core</artifactId>
+            <version>15.4</version>
+        </dependency>
+
         <!-- SLF4J for logging (required by SDK) -->
         <dependency>
             <groupId>org.slf4j</groupId>
