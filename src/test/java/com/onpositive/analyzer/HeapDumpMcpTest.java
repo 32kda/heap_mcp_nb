@@ -222,4 +222,35 @@ public class HeapDumpMcpTest {
         assertTrue(result.isError() || content.contains("Query Results") || content.contains("No results found"),
             "Should handle OQL query with qualified class name. Got: " + content);
     }
+
+    @Test
+    void testGetAllReferencesAfterLoad() {
+        McpSchema.CallToolRequest loadRequest = new McpSchema.CallToolRequest("load_heap", Map.of("file_path", samplePath));
+        tools.loadHeapTool().callHandler().apply(null, loadRequest);
+
+        McpSchema.CallToolRequest oqlRequest = new McpSchema.CallToolRequest("execute_oql", Map.of("query", "select s from java.lang.String s where s.value != null", "max_results", 1));
+        McpSchema.CallToolResult oqlResult = tools.executeOqlTool().callHandler().apply(null, oqlRequest);
+        String oqlContent = ((McpSchema.TextContent) oqlResult.content().get(0)).text();
+
+        if (oqlContent.contains("Instance ID:")) {
+            String instanceIdStr = oqlContent.replaceAll(".*Instance ID:\\s*(\\d+).*", "$1");
+            try {
+                long instanceId = Long.parseLong(instanceIdStr);
+                McpSchema.CallToolRequest refsRequest = new McpSchema.CallToolRequest("get_all_references", Map.of("id", instanceId, "from", 0, "to", 10));
+                McpSchema.CallToolResult refsResult = tools.getAllReferencesTool().callHandler().apply(null, refsRequest);
+                assertFalse(refsResult.isError(), "get_all_references should not return error: " + ((McpSchema.TextContent) refsResult.content().get(0)).text());
+            } catch (NumberFormatException e) {
+                System.out.println("Could not parse instance ID from OQL result: " + oqlContent);
+            }
+        }
+    }
+
+    @Test
+    void testGetAllReferencesInvalidId() {
+        tools.loadHeapTool().callHandler().apply(null, new McpSchema.CallToolRequest("load_heap", Map.of("file_path", samplePath)));
+
+        McpSchema.CallToolRequest request = new McpSchema.CallToolRequest("get_all_references", Map.of("id", 999999999L, "from", 0, "to", 10));
+        McpSchema.CallToolResult result = tools.getAllReferencesTool().callHandler().apply(null, request);
+        assertFalse(result.isError(), "Should handle non-existent instance gracefully");
+    }
 }
