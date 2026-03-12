@@ -1,14 +1,8 @@
 package com.onpositive.analyzer;
 
 import com.onpositive.analyzer.util.LRUCache;
-import org.netbeans.lib.profiler.heap.Heap;
-import org.netbeans.lib.profiler.heap.HeapFactory;
-import org.netbeans.lib.profiler.heap.JavaClass;
-import org.netbeans.lib.profiler.heap.HeapSummary;
-import org.netbeans.lib.profiler.heap.Instance;
-import org.netbeans.lib.profiler.heap.GCRoot;
-import org.netbeans.lib.profiler.heap.FieldValue;
-import org.netbeans.lib.profiler.heap.ObjectFieldValue;
+import org.netbeans.lib.profiler.heap.*;
+import org.netbeans.lib.profiler.utils.StringUtils;
 import org.netbeans.modules.profiler.oql.engine.api.OQLEngine;
 
 import java.io.File;
@@ -80,11 +74,6 @@ public class HeapDumpService {
         return heap.getBiggestObjectsByRetainedSize(limit);
     }
 
-    public Collection<GCRoot> getGCRoots() {
-        if (heap == null) throw new IllegalStateException("Heap not loaded");
-        return heap.getGCRoots();
-    }
-
     public static class GCRootInfo {
         public String kind;
         public long instanceId;
@@ -111,11 +100,25 @@ public class HeapDumpService {
                 result.add(new GCRootInfo(
                         root.getKind(),
                         inst.getInstanceId(),
-                        inst.getJavaClass().getName()
+                        getClassName(inst)
                 ));
             }
         }
         return result;
+    }
+
+    private static String getClassName(Instance inst) {
+        if (inst.getJavaClass() == null || inst.getJavaClass().getName() == null) {
+            return "";
+        }
+        String name = inst.getJavaClass().getName();
+        if (name.equals("java.lang.Class")) {
+            Object clzName = inst.getValueOfField("name");
+            if (clzName != null) {
+                return name + "<" + clzName + ">";
+            }
+        }
+        return name;
     }
 
     public JavaClass getJavaClassByName(String name) {
@@ -181,7 +184,7 @@ public class HeapDumpService {
         
         return new InstanceInfo(
                 instance.getInstanceId(),
-                instance.getJavaClass().getName(),
+                getClassName(instance),
                 instance.getSize(),
                 instance.getRetainedSize(),
                 fields
@@ -205,8 +208,20 @@ public class HeapDumpService {
         Instance instance = heap.getInstanceByID(instanceId);
         if (instance == null) return new ArrayList<>();
         
-        Collection<Instance> references = instance.getReferences();
-        List<Instance> refsList = new ArrayList<>(references);
+        Collection<?> references = instance.getReferences();
+        List<Instance> refsList = new ArrayList<>();
+        for (Object refObj : references) {
+            if (refObj instanceof FieldValue) {
+                FieldValue fv = (FieldValue) refObj;
+                if (fv instanceof ObjectFieldValue) {
+                    ObjectFieldValue ofv = (ObjectFieldValue) fv;
+                    Instance refInstance = ofv.getInstance();
+                    if (refInstance != null) {
+                        refsList.add(refInstance);
+                    }
+                }
+            }
+        }
         int safeTo = Math.min(to, refsList.size());
         int safeFrom = Math.min(from, safeTo);
         
@@ -214,7 +229,7 @@ public class HeapDumpService {
         for (Instance ref : refsList.subList(safeFrom, safeTo)) {
             result.add(new ReferenceInfo(
                     ref.getInstanceId(),
-                    ref.getJavaClass().getName(),
+                    getClassName(ref),
                     null
             ));
         }
@@ -269,8 +284,19 @@ public class HeapDumpService {
                 if (count > maxResults) {
                     return false;
                 }
-
-                if (o instanceof Instance) {
+                
+                if (o instanceof PrimitiveArrayInstance arrayInstance) {
+                    resultBuilder.append("Array:").append(getClassName(arrayInstance)).append(" values:[");
+                    int to = Math.min(100, arrayInstance.getLength());
+                    List values = arrayInstance.getValues();
+                    for (int i = 0; i < to; i++) {
+                        resultBuilder.append(values.get(i).toString());
+                        if (i < to - 1) {
+                            resultBuilder.append(",");
+                        }
+                    }
+                    resultBuilder.append("]\n");
+                } else if (o instanceof Instance) {
                     Instance inst = (Instance) o;
                     resultBuilder.append(String.format("[%d] %s (ID: 0x%x, Size: %d)\n",
                             count,

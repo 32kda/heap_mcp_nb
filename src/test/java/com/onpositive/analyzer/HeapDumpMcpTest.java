@@ -199,11 +199,23 @@ public class HeapDumpMcpTest {
     }
 
     @Test
+    void testOqlGetFieldAfterLoadingHeap() {
+        McpSchema.CallToolRequest loadRequest = new McpSchema.CallToolRequest("load_heap", Map.of("file_path", samplePath));
+        tools.loadHeapTool().callHandler().apply(null, loadRequest);
+
+        McpSchema.CallToolRequest request = new McpSchema.CallToolRequest("execute_oql", Map.of("query", "select s.value from java.lang.String s", "max_results", 10));
+        McpSchema.CallToolResult result = tools.executeOqlTool().callHandler().apply(null, request);
+        String content = ((McpSchema.TextContent) result.content().get(0)).text();
+        assertTrue(content.contains("Array:char[]"),
+                "Should return valid results when executing OQL after loading heap. Got: " + content);
+    }
+
+    @Test
     void testExecuteOqlWithQualifiedClassName() {
         McpSchema.CallToolRequest loadRequest = new McpSchema.CallToolRequest("load_heap", Map.of("file_path", samplePath));
         tools.loadHeapTool().callHandler().apply(null, loadRequest);
         
-        McpSchema.CallToolRequest request = new McpSchema.CallToolRequest("execute_oql", Map.of("query", "SELECT * FROM javax.swing.JFrame f", "max_results", 10));
+        McpSchema.CallToolRequest request = new McpSchema.CallToolRequest("execute_oql", Map.of("query", "SELECT f FROM javax.swing.JFrame f", "max_results", 10));
         McpSchema.CallToolResult result = tools.executeOqlTool().callHandler().apply(null, request);
         String content = ((McpSchema.TextContent) result.content().get(0)).text();
         System.out.println("OQL Result: " + content);

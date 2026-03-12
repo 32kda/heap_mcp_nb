@@ -657,7 +657,7 @@ public class HeapDumpTools {
         McpSchema.Tool tool = new McpSchema.Tool(
                 "execute_oql",
                 "Execute OQL Query",
-                "Executes an OQL query on the heap dump.",
+                "Executes an OQL query on the heap dump. Query syntax example: 'select s.value from java.lang.String s'",
                 inputSchema,
                 null, null, null
         );
@@ -675,7 +675,9 @@ public class HeapDumpTools {
                         .isError(false)
                         .build();
             } catch (Exception e) {
-                return errorResult(e.getMessage());
+                String message = "Use the correct OQL query syntax, which is slightly different from SQL\n" +
+                        "example: select var_name from fully.qualified.Name var_name. You can use JS syntax, like var_name.field_name after select statement\n";
+                return errorResult(message + e.getMessage());
             }
         });
     }
