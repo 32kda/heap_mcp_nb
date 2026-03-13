@@ -94,7 +94,7 @@ Add to your `opencode.json`:
   "mcpServers": {
     "heap-analyzer": {
       "command": "java",
-      "args": ["-jar", "${workspace}/target/heap_mcp_nb-0.01.jar"],
+      "args": ["-jar", "${workspace}/target/heap_mcp_nb-0.0.1.jar"],
       "env": {}
     }
   }
@@ -130,7 +130,7 @@ mvn test -Dtest=McpClientIntegrationTest
 
 ## Usage Examples
 
-### In tools like Trae, OpenCode or Qwen CLI you can just point to .hrpof file with your heap dump and ask smth like `Find possible problms in this heap dump`
+In tools like Trae, OpenCode or Qwen CLI you can just point to .hrpof file with your heap dump and ask smth like `Find possible problems in this heap dump`
 
 ### Using with MCP Client
 
