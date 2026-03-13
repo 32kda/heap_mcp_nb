@@ -1,4 +1,4 @@
-# Heap Dump MCP Server
+# Java Heap Dump MCP Server
 
 A Model Context Protocol (MCP) server for analyzing Java heap dump files (.hprof). This project provides a set of tools that allow AI assistants to analyze Java heap dumps through a standardized MCP interface.
 Based on NetBeans Profiler library as a backend.
@@ -62,6 +62,9 @@ Based on NetBeans Profiler library as a backend.
 - Java 17 or higher
 - Maven 3.6+
 
+## Installing
+* Just download jar from the releases section
+  
 ## Building
 
 ```bash
@@ -75,7 +78,7 @@ This creates a shaded JAR at `target/heap_mcp_nb-1.0-SNAPSHOT-shaded.jar` with a
 ### As MCP Server (STDIO)
 
 ```bash
-java -jar target/heap_mcp_nb-1.0-SNAPSHOT-shaded.jar
+java -jar target/heap_mcp_nb-0.0.1.jar
 ```
 
 The server communicates via STDIO, making it compatible with MCP clients like Claude Desktop or opencode.
@@ -91,7 +94,7 @@ Add to your `opencode.json`:
   "mcpServers": {
     "heap-analyzer": {
       "command": "java",
-      "args": ["-jar", "${workspace}/target/heap_mcp_nb-1.0-SNAPSHOT-shaded.jar"],
+      "args": ["-jar", "${workspace}/target/heap_mcp_nb-0.01.jar"],
       "env": {}
     }
   }
@@ -105,7 +108,7 @@ Add to your `opencode.json`:
   "mcpServers": {
     "heap-analyzer": {
       "command": "java",
-      "args": ["-jar", "path/to/heap_mcp_nb-1.0-SNAPSHOT-shaded.jar"],
+      "args": ["-jar", "path/to/heap_mcp_nb-0.0.1.jar"],
       "env": {}
     }
   }
@@ -126,6 +129,8 @@ mvn test -Dtest=McpClientIntegrationTest
 ```
 
 ## Usage Examples
+
+### In tools like Trae, OpenCode or Qwen CLI you can just point to .hrpof file with your heap dump and ask smth like `Find possible problms in this heap dump`
 
 ### Using with MCP Client
 
