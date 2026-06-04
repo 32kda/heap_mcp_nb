@@ -8,7 +8,6 @@ import com.onpositive.analyzer.search.HeapDumpBm25Indexer;
 import com.onpositive.analyzer.search.InMemoryBm25Index;
 import com.onpositive.analyzer.util.LRUCache;
 import org.netbeans.lib.profiler.heap.*;
-import org.netbeans.lib.profiler.utils.StringUtils;
 import org.netbeans.modules.profiler.oql.engine.api.OQLEngine;
 
 import java.io.File;
@@ -26,10 +25,22 @@ public class HeapDumpService {
     private OQLEngine oqlEngine;
     private List<ClassStats> classesSortedByCount;
     private List<ClassStats> classesSortedBySize;
-    private LRUCache<String, List<JavaClass>> classesByRegexp = new LRUCache<>(10);
+    private final LRUCache<String, List<JavaClass>> classesByRegexp = new LRUCache<>(10);
 
     private Bm25Index bm25Index;
-    private LRUCache<String, List<Bm25Result>> bm25SearchCache = new LRUCache<>(20);
+    private final LRUCache<String, List<Bm25Result>> bm25SearchCache = new LRUCache<>(20);
+
+    public static class InstancePage {
+        public List<Instance> instances;
+        public long totalCount;
+        public long remaining;
+
+        public InstancePage(List<Instance> instances, long totalCount, long remaining) {
+            this.instances = instances;
+            this.totalCount = totalCount;
+            this.remaining = remaining;
+        }
+    }
 
     public static class ClassStats {
         public String className;
@@ -254,6 +265,23 @@ public class HeapDumpService {
         int safeTo = Math.min(to, classesList.size());
         int safeFrom = Math.min(from, safeTo);
         return classesList.subList(safeFrom, safeTo);
+    }
+
+    public InstancePage getInstancesByClassName(String className, int from, int to) {
+        if (heap == null) throw new IllegalStateException("Heap not loaded");
+        JavaClass javaClass = heap.getJavaClassByName(className);
+        if (javaClass == null) return new InstancePage(new ArrayList<>(), 0, 0);
+
+        Collection<Instance> allInstances = javaClass.getInstances();
+        List<Instance> instancesList = new ArrayList<>(allInstances);
+        long totalCount = instancesList.size();
+
+        int safeTo = Math.min(to, instancesList.size());
+        int safeFrom = Math.min(from, safeTo);
+        long remaining = totalCount - safeTo;
+        if (remaining < 0) remaining = 0;
+
+        return new InstancePage(instancesList.subList(safeFrom, safeTo), totalCount, remaining);
     }
 
     public HeapSummary getSummary() {

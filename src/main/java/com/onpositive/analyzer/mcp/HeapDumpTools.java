@@ -11,11 +11,11 @@ import com.onpositive.analyzer.printing.GCRootInfoListPrinter;
 import com.onpositive.analyzer.printing.HeapSummaryPrinter;
 import com.onpositive.analyzer.printing.InstanceInfoPrinter;
 import com.onpositive.analyzer.printing.InstanceListPrinter;
+import com.onpositive.analyzer.printing.InstancePagePrinter;
 import com.onpositive.analyzer.printing.JavaClassPrinterWrapper;
 import com.onpositive.analyzer.printing.PropertiesPrinter;
 import com.onpositive.analyzer.printing.ReferenceInfoListPrinter;
 import com.onpositive.analyzer.search.Bm25Result;
-import io.modelcontextprotocol.server.McpServerFeatures.SyncToolSpecification;
 import org.netbeans.lib.profiler.heap.HeapSummary;
 import org.netbeans.lib.profiler.heap.Instance;
 import org.netbeans.lib.profiler.heap.JavaClass;
@@ -108,6 +108,15 @@ public class HeapDumpTools {
             @Default(name = "from", value = "0") int from,
             @Default(name = "to", value = "50") int to) {
         return heapDumpService.getJavaClassesByRegExpPaginated(regexp, from, to);
+    }
+
+    @Tool(name = "get_instances", title = "Get Instances", decription = "Returns instances of a class by class name with pagination, 10 per page.")
+    @Printer(impl = InstancePagePrinter.class)
+    public HeapDumpService.InstancePage getInstances(
+            @Required("class_name") String className,
+            @Default(name = "from", value = "0") int from,
+            @Default(name = "to", value = "10") int to) {
+        return heapDumpService.getInstancesByClassName(className, from, to);
     }
 
     @Tool(name = "get_summary", title = "Get Heap Summary", decription = "Returns the summary of the loaded heap.")

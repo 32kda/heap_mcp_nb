@@ -50,4 +50,16 @@ public class Bm25Result {
     public void setTotalSize(long totalSize) {
         this.totalSize = totalSize;
     }
+
+    @Override
+    public String toString() {
+        return "Bm25Result{" +
+                "className='" + className + '\'' +
+                ", score=" + score +
+                ", matchedTerms='" + matchedTerms + '\'' +
+                ", topField='" + topField + '\'' +
+                ", instanceCount=" + instanceCount +
+                ", totalSize=" + totalSize +
+                '}';
+    }
 }

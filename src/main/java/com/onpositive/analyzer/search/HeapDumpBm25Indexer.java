@@ -14,6 +14,10 @@ public class HeapDumpBm25Indexer {
     private final ClassSkippedPredicate skipPredicate;
     private final ClassNameTokenizer tokenizer;
 
+    public HeapDumpBm25Indexer(Bm25Index index) {
+        this(index, new DefaultClassSkippedPredicate(), new ClassNameTokenizer());
+    }
+
     public HeapDumpBm25Indexer(Bm25Index index, ClassSkippedPredicate skipPredicate,
                                ClassNameTokenizer tokenizer) {
         this.index = index;

@@ -1,8 +1,6 @@
 package com.onpositive.analyzer.search;
 
 import java.util.List;
-import java.util.Set;
-import java.util.regex.Pattern;
 
 public class DefaultClassSkippedPredicate implements ClassSkippedPredicate {
 
@@ -28,18 +26,6 @@ public class DefaultClassSkippedPredicate implements ClassSkippedPredicate {
             "org.eclipse.jetty."
     );
 
-    private static final Set<Pattern> PROXY_PATTERNS = Set.of(
-            Pattern.compile(".*\\$Proxy\\d*$"),
-            Pattern.compile(".*\\$\\$EnhancerByCGLIB\\$\\$.*"),
-            Pattern.compile(".*\\$\\$FastClassByCGLIB\\$\\$.*"),
-            Pattern.compile(".*\\$\\$_javassist.*"),
-            Pattern.compile(".*_\\$\\$_jvst.*"),
-            Pattern.compile(".*_Stub$"),
-            Pattern.compile(".*__Impl$"),
-            Pattern.compile(".*\\$HibernateProxy\\$.*"),
-            Pattern.compile("^\\$+[A-Za-z].*")
-    );
-
     @Override
     public boolean shouldSkip(String fullyQualifiedClassName) {
         if (fullyQualifiedClassName == null || fullyQualifiedClassName.isEmpty()) {
@@ -50,17 +36,48 @@ public class DefaultClassSkippedPredicate implements ClassSkippedPredicate {
                 return true;
             }
         }
-        for (Pattern pattern : PROXY_PATTERNS) {
-            if (pattern.matcher(fullyQualifiedClassName).matches()) {
-                return true;
-            }
+        if (isSyntheticProxy(fullyQualifiedClassName)) {
+            return true;
         }
         if (fullyQualifiedClassName.contains("$Lambda")) {
             return true;
         }
-        if (fullyQualifiedClassName.matches(".*\\$\\d+$")) {
-            return true;
+        return endsWithDollarDigits(fullyQualifiedClassName);
+    }
+
+    private static boolean isSyntheticProxy(String name) {
+        if (name.contains("$$")) return true;
+        if (name.endsWith("_Stub")) return true;
+        if (name.endsWith("__Impl")) return true;
+        if (name.contains("$HibernateProxy$")) return true;
+        if (startsWithDollarFollowedByLetter(name)) return true;
+        return isDollarProxySuffix(name);
+    }
+
+    private static boolean startsWithDollarFollowedByLetter(String name) {
+        if (name.isEmpty() || name.charAt(0) != '$') return false;
+        int i = 0;
+        while (i < name.length() && name.charAt(i) == '$') i++;
+        return i < name.length() && Character.isLetter(name.charAt(i));
+    }
+
+    private static boolean endsWithDollarDigits(String name) {
+        int idx = name.lastIndexOf('$');
+        if (idx < 0 || idx == name.length() - 1) return false;
+        for (int i = idx + 1; i < name.length(); i++) {
+            if (!Character.isDigit(name.charAt(i))) return false;
         }
-        return false;
+        return true;
+    }
+
+    private static boolean isDollarProxySuffix(String name) {
+        int idx = name.lastIndexOf("$Proxy");
+        if (idx < 0) return false;
+        String after = name.substring(idx + "$Proxy".length());
+        if (after.isEmpty()) return true;
+        for (int i = 0; i < after.length(); i++) {
+            if (!Character.isDigit(after.charAt(i))) return false;
+        }
+        return true;
     }
 }

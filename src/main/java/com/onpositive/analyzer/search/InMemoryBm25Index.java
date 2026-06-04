@@ -213,4 +213,24 @@ public class InMemoryBm25Index implements Bm25Index {
     public ClassNameTokenizer getTokenizer() {
         return tokenizer;
     }
+
+    Map<Bm25Field, Map<String, IntIntHashMap>> getFieldIndexes() {
+        return fieldIndexes;
+    }
+
+    Map<Bm25Field, ObjectIntMap<String>> getFieldTermDocCounts() {
+        return fieldTermDocCounts;
+    }
+
+    Map<Bm25Field, IntIntHashMap> getFieldDocLengths() {
+        return fieldDocLengths;
+    }
+
+    Map<Bm25Field, Double> getFieldAvgDl() {
+        return fieldAvgDl;
+    }
+
+    int getNextDocId() {
+        return nextDocId;
+    }
 }

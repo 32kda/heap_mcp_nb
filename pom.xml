@@ -45,6 +45,13 @@
             <version>0.9.1</version>
         </dependency>
 
+        <!-- Apache Commons Lang -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.14.0</version>
+        </dependency>
+
         <!-- SLF4J for logging (required by SDK) -->
         <dependency>
             <groupId>org.slf4j</groupId>

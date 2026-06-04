@@ -1,6 +1,7 @@
 package com.onpositive.analyzer.search;
 
 import java.util.*;
+import org.apache.commons.lang3.StringUtils;
 
 public class ClassNameTokenizer {
 
@@ -20,11 +21,11 @@ public class ClassNameTokenizer {
             return Collections.emptyList();
         }
         List<String> result = new ArrayList<>();
-        for (String segment : name.split("[.$\\s]+")) {
+        for (String segment : splitByDelimiters(name)) {
             if (segment.isEmpty()) continue;
             for (String subSegment : splitCamelCase(segment)) {
                 if (subSegment.isEmpty()) continue;
-                for (String part : subSegment.split("_")) {
+                for (String part : StringUtils.split(subSegment, '_')) {
                     if (part.isEmpty()) continue;
                     String cleaned = cleanIdentifier(part);
                     if (cleaned.isEmpty()) continue;
@@ -44,6 +45,7 @@ public class ClassNameTokenizer {
         if (simple.isEmpty()) return null;
         String cleaned = cleanIdentifier(simple.toLowerCase());
         if (cleaned.isEmpty() || cleaned.length() <= 1) return null;
+        if (isStopword(cleaned)) return null;
         return cleaned;
     }
 
@@ -93,6 +95,24 @@ public class ClassNameTokenizer {
             }
         }
         return sb.toString();
+    }
+
+    private static List<String> splitByDelimiters(String str) {
+        List<String> result = new ArrayList<>();
+        int start = 0;
+        for (int i = 0; i < str.length(); i++) {
+            char c = str.charAt(i);
+            if (c == '.' || c == '$' || Character.isWhitespace(c)) {
+                if (i > start) {
+                    result.add(str.substring(start, i));
+                }
+                start = i + 1;
+            }
+        }
+        if (start < str.length()) {
+            result.add(str.substring(start));
+        }
+        return result;
     }
 
     private static Set<String> buildStopwordSet() {
