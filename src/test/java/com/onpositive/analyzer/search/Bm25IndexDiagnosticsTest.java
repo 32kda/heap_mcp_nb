@@ -24,7 +24,7 @@ public class Bm25IndexDiagnosticsTest {
 
     @BeforeEach
     void setUp() throws IOException {
-        File sampleFile = new File("D:/work/heapdump-1780452136629.hprof");
+        File sampleFile = new File("src/test/resources/HeapDumpSample.hprof");
         if (!sampleFile.exists()) {
             throw new IOException("Heap dump not found: " + sampleFile.getAbsolutePath());
         }

@@ -4,145 +4,98 @@ import com.onpositive.analyzer.mcp.HeapDumpTools;
 import io.modelcontextprotocol.server.McpServerFeatures;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class ToolsGetter {
 
     private final HeapDumpTools tools;
+    private final Map<String, McpServerFeatures.SyncToolSpecification> specs;
 
     public ToolsGetter(HeapDumpTools tools) {
         this.tools = tools;
+        this.specs = buildSpecs();
     }
 
-    public List<McpServerFeatures.SyncToolSpecification> getSpecifications() {
-        return com.onpositive.analyzer.mcp.reflection.ToolsFactory.createToolSpecs(tools);
+    private Map<String, McpServerFeatures.SyncToolSpecification> buildSpecs() {
+        List<McpServerFeatures.SyncToolSpecification> list = com.onpositive.analyzer.mcp.reflection.ToolsFactory.createToolSpecs(tools);
+        return list.stream().collect(Collectors.toMap(s -> s.tool().name(), s -> s));
+    }
+
+    public Map<String, McpServerFeatures.SyncToolSpecification> getSpecifications() {
+        return specs;
     }
 
     public McpServerFeatures.SyncToolSpecification loadHeapTool() {
-        List<McpServerFeatures.SyncToolSpecification> specs = getSpecifications();
-        return specs.stream()
-                .filter(s -> s.tool().name().equals("load_heap"))
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("Tool not found: load_heap"));
+        return get("load_heap");
     }
 
     public McpServerFeatures.SyncToolSpecification getClassesByMaxInstancesCountTool() {
-        List<McpServerFeatures.SyncToolSpecification> specs = getSpecifications();
-        return specs.stream()
-                .filter(s -> s.tool().name().equals("get_classes_by_max_instances_count"))
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("Tool not found: get_classes_by_max_instances_count"));
+        return get("get_classes_by_max_instances_count");
     }
 
     public McpServerFeatures.SyncToolSpecification getClassesByMaxInstancesSizeTool() {
-        List<McpServerFeatures.SyncToolSpecification> specs = getSpecifications();
-        return specs.stream()
-                .filter(s -> s.tool().name().equals("get_classes_by_max_instances_size"))
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("Tool not found: get_classes_by_max_instances_size"));
+        return get("get_classes_by_max_instances_size");
     }
 
     public McpServerFeatures.SyncToolSpecification getBiggestObjectsTool() {
-        List<McpServerFeatures.SyncToolSpecification> specs = getSpecifications();
-        return specs.stream()
-                .filter(s -> s.tool().name().equals("get_biggest_objects"))
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("Tool not found: get_biggest_objects"));
+        return get("get_biggest_objects");
     }
 
     public McpServerFeatures.SyncToolSpecification getGCRootsTool() {
-        List<McpServerFeatures.SyncToolSpecification> specs = getSpecifications();
-        return specs.stream()
-                .filter(s -> s.tool().name().equals("get_gc_roots"))
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("Tool not found: get_gc_roots"));
+        return get("get_gc_roots");
     }
 
     public McpServerFeatures.SyncToolSpecification getGCRootsPaginatedTool() {
-        List<McpServerFeatures.SyncToolSpecification> specs = getSpecifications();
-        return specs.stream()
-                .filter(s -> s.tool().name().equals("get_gc_roots_paginated"))
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("Tool not found: get_gc_roots_paginated"));
+        return get("get_gc_roots_paginated");
     }
 
     public McpServerFeatures.SyncToolSpecification getJavaClassByNameTool() {
-        List<McpServerFeatures.SyncToolSpecification> specs = getSpecifications();
-        return specs.stream()
-                .filter(s -> s.tool().name().equals("get_class_by_name"))
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("Tool not found: get_class_by_name"));
+        return get("get_class_by_name");
     }
 
     public McpServerFeatures.SyncToolSpecification getJavaClassByIdTool() {
-        List<McpServerFeatures.SyncToolSpecification> specs = getSpecifications();
-        return specs.stream()
-                .filter(s -> s.tool().name().equals("get_class_by_id"))
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("Tool not found: get_class_by_id"));
+        return get("get_class_by_id");
     }
 
     public McpServerFeatures.SyncToolSpecification getInstanceByIdTool() {
-        List<McpServerFeatures.SyncToolSpecification> specs = getSpecifications();
-        return specs.stream()
-                .filter(s -> s.tool().name().equals("get_instance_by_id"))
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("Tool not found: get_instance_by_id"));
+        return get("get_instance_by_id");
     }
 
     public McpServerFeatures.SyncToolSpecification getAllReferencesTool() {
-        List<McpServerFeatures.SyncToolSpecification> specs = getSpecifications();
-        return specs.stream()
-                .filter(s -> s.tool().name().equals("get_all_references"))
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("Tool not found: get_all_references"));
+        return get("get_all_references");
     }
 
     public McpServerFeatures.SyncToolSpecification getJavaClassesByRegExpTool() {
-        List<McpServerFeatures.SyncToolSpecification> specs = getSpecifications();
-        return specs.stream()
-                .filter(s -> s.tool().name().equals("get_classes_by_regexp"))
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("Tool not found: get_classes_by_regexp"));
+        return get("get_classes_by_regexp");
     }
 
     public McpServerFeatures.SyncToolSpecification getSummaryTool() {
-        List<McpServerFeatures.SyncToolSpecification> specs = getSpecifications();
-        return specs.stream()
-                .filter(s -> s.tool().name().equals("get_summary"))
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("Tool not found: get_summary"));
+        return get("get_summary");
     }
 
     public McpServerFeatures.SyncToolSpecification getSystemPropertiesTool() {
-        List<McpServerFeatures.SyncToolSpecification> specs = getSpecifications();
-        return specs.stream()
-                .filter(s -> s.tool().name().equals("get_system_properties"))
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("Tool not found: get_system_properties"));
+        return get("get_system_properties");
     }
 
     public McpServerFeatures.SyncToolSpecification executeOqlTool() {
-        List<McpServerFeatures.SyncToolSpecification> specs = getSpecifications();
-        return specs.stream()
-                .filter(s -> s.tool().name().equals("execute_oql"))
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("Tool not found: execute_oql"));
+        return get("execute_oql");
     }
 
     public McpServerFeatures.SyncToolSpecification analyzeHeapTool() {
-        List<McpServerFeatures.SyncToolSpecification> specs = getSpecifications();
-        return specs.stream()
-                .filter(s -> s.tool().name().equals("analyze_heap_dump"))
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("Tool not found: analyze_heap_dump"));
+        return get("analyze_heap_dump");
     }
 
     public McpServerFeatures.SyncToolSpecification searchClassesTool() {
-        List<McpServerFeatures.SyncToolSpecification> specs = getSpecifications();
-        return specs.stream()
-                .filter(s -> s.tool().name().equals("search_classes"))
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("Tool not found: search_classes"));
+        return get("search_classes");
+    }
+
+    private McpServerFeatures.SyncToolSpecification get(String name) {
+        McpServerFeatures.SyncToolSpecification spec = specs.get(name);
+        if (spec == null) {
+            throw new IllegalStateException("Tool not found: " + name);
+        }
+        return spec;
     }
 
 }

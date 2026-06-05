@@ -6,7 +6,7 @@
 
     <groupId>com.onpositive</groupId>
     <artifactId>heap_mcp_nb</artifactId>
-    <version>0.0.1</version>
+    <version>0.0.2</version>
 
     <dependencies>
         <!-- MCP Java SDK -->
