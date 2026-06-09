@@ -1,6 +1,5 @@
 package com.onpositive.analyzer;
 
-import com.onpositive.analyzer.printing.InstancePrinter;
 import com.onpositive.analyzer.search.Bm25Index;
 import com.onpositive.analyzer.search.Bm25Result;
 import com.onpositive.analyzer.search.ClassNameTokenizer;
@@ -9,11 +8,9 @@ import com.onpositive.analyzer.search.HeapDumpBm25Indexer;
 import com.onpositive.analyzer.search.InMemoryBm25Index;
 import com.onpositive.analyzer.util.LRUCache;
 import org.netbeans.lib.profiler.heap.*;
-import org.netbeans.modules.profiler.oql.engine.api.OQLEngine;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -26,7 +23,7 @@ import static com.onpositive.analyzer.util.ClassUtil.getClassName;
 public class HeapDumpService {
 
     private Heap heap;
-    private OQLEngine oqlEngine;
+    private OqlQueryExecutor oqlExecutor;
     private List<ClassStats> classesSortedByCount;
     private List<ClassStats> classesSortedBySize;
     private final LRUCache<String, List<JavaClass>> classesByRegexp = new LRUCache<>(10);
@@ -35,9 +32,9 @@ public class HeapDumpService {
     private final LRUCache<String, List<Bm25Result>> bm25SearchCache = new LRUCache<>(20);
 
     public static class InstancePage {
-        public List<Instance> instances;
-        public long totalCount;
-        public long remaining;
+        public final List<Instance> instances;
+        public final long totalCount;
+        public final long remaining;
 
         public InstancePage(List<Instance> instances, long totalCount, long remaining) {
             this.instances = instances;
@@ -294,67 +291,10 @@ public class HeapDumpService {
         if (heap == null) {
             throw new IllegalStateException("Heap not loaded. Please load a heap dump first.");
         }
-        
-        if (oqlEngine == null) {
-            oqlEngine = new OQLEngine(heap);
+        if (oqlExecutor == null) {
+            oqlExecutor = new OqlQueryExecutor(heap);
         }
-
-//        String convertedQuery = convertToNetBeansOql(query);
-        
-        StringBuilder resultBuilder = new StringBuilder();
-        InstancePrinter printer = new InstancePrinter();
-
-        oqlEngine.executeQuery(query, new OQLEngine.ObjectVisitor() {
-            int count = 0;
-
-            @Override
-            public boolean visit(Object o) {
-                count++;
-                if (count > maxResults) {
-                    return false;
-                }
-
-                if (o instanceof Instance) {
-                    resultBuilder.append(String.format("[%d] \"%s\"\n", count, printer.print(o)));
-                } else if (o != null) {
-                    resultBuilder.append(String.format("[%d] %s\n", count, o));
-                }
-                return true;
-            }
-        });
-
-        if (resultBuilder.isEmpty()) {
-            return "No results found or empty result set.";
-        }
-
-        return "Query Results:\n" + resultBuilder.toString();
-    }
-    
-    private String convertToNetBeansOql(String query) {
-        query = query.trim();
-        if (query.toLowerCase().startsWith("select")) {
-            String lowerQuery = query.toLowerCase();
-            int fromIndex = lowerQuery.indexOf("from");
-            if (fromIndex > 0) {
-                int classStart = fromIndex + 5;
-                int whereIndex = lowerQuery.indexOf("where");
-                int aliasEnd = whereIndex > 0 ? whereIndex : query.length();
-                
-                String className = query.substring(classStart, aliasEnd).trim();
-                String alias = "o";
-                String whereClause = "";
-                
-                String beforeFrom = query.substring(6, fromIndex).trim();
-                if (beforeFrom.equals("*") || beforeFrom.isEmpty()) {
-                    if (whereIndex > 0) {
-                        whereClause = query.substring(whereIndex + 5).trim();
-                        return "heap.forEachObject(function(" + alias + ") { if (" + whereClause + ") { print('" + alias + "'); } }, '" + className + "')";
-                    }
-                    return "heap.forEachObject(function(" + alias + ") { print('" + alias + "'); }, '" + className + "')";
-                }
-            }
-        }
-        return query;
+        return oqlExecutor.executeOql(query, maxResults);
     }
 
     private void buildBm25Index() {

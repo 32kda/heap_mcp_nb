@@ -18,11 +18,12 @@ public class InstanceListPrinter implements IValuePrinter {
             for (Object item : list) {
                 if (item instanceof Instance inst) {
                     try {
-                        long instanceId = inst.getInstanceId();
-                        String className = inst.getJavaClass().getName();
-                        long retainedSize = inst.getRetainedSize();
-                        sb.append(String.format("ID: %d, Class: %s, Retained Size: %d\n",
-                                instanceId, className, retainedSize));
+                        sb.append(InstanceQuickPrinter.quickPrint(inst));
+                        String fields = InstanceQuickPrinter.formatFieldsShort(inst);
+                        if (!fields.isEmpty()) {
+                            sb.append(", Fields: ").append(fields);
+                        }
+                        sb.append("\n");
                         count++;
                     } catch (Exception e) {
                         // Skip objects with invalid instance references
@@ -39,16 +40,16 @@ public class InstanceListPrinter implements IValuePrinter {
         }
 
         if (object instanceof Instance instance) {
-            StringBuilder sb = new StringBuilder();
             try {
-                sb.append(String.format("ID: %d, Class: %s, Retained Size: %d\n",
-                        instance.getInstanceId(),
-                        instance.getJavaClass().getName(),
-                        instance.getRetainedSize()));
+                StringBuilder sb = new StringBuilder(InstanceQuickPrinter.quickPrint(instance));
+                String fields = InstanceQuickPrinter.formatFieldsShort(instance);
+                if (!fields.isEmpty()) {
+                    sb.append(", Fields: ").append(fields);
+                }
+                return sb.toString();
             } catch (Exception e) {
                 return "Invalid instance";
             }
-            return sb.toString();
         }
 
         return object != null ? object.toString() : "";

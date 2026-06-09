@@ -18,7 +18,15 @@ public final class FileLogger {
     private final Path logFile;
     private final Object lock = new Object();
 
-    public FileLogger() {
+    private static class Holder {
+        static final FileLogger INSTANCE = new FileLogger();
+    }
+
+    public static FileLogger getInstance() {
+        return Holder.INSTANCE;
+    }
+
+    private FileLogger() {
         String userHome = System.getProperty("user.home", ".");
         this.logDir = Paths.get(userHome, ".heap_mcp");
         this.logFile = logDir.resolve("heap_mcp.log");
@@ -63,6 +71,27 @@ public final class FileLogger {
                 rotateIfNeeded();
                 String header = String.format("[%s] [ERROR] %s | %s: %s%n",
                         TIMESTAMP_FMT.format(LocalDateTime.now()), toolName,
+                        error.getClass().getName(), error.getMessage());
+                Files.write(logFile, header.getBytes(StandardCharsets.UTF_8),
+                        StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+                try (StringWriter sw = new StringWriter(); PrintWriter pw = new PrintWriter(sw)) {
+                    error.printStackTrace(pw);
+                    pw.flush();
+                    Files.write(logFile, sw.toString().getBytes(StandardCharsets.UTF_8),
+                            StandardOpenOption.APPEND);
+                }
+            } catch (IOException e) {
+                System.err.println("[FileLogger] Write failed: " + e.getMessage());
+            }
+        }
+    }
+
+    public void logError(String className, Throwable error) {
+        synchronized (lock) {
+            try {
+                rotateIfNeeded();
+                String header = String.format("[%s] [ERROR] %s | %s: %s%n",
+                        TIMESTAMP_FMT.format(LocalDateTime.now()), className,
                         error.getClass().getName(), error.getMessage());
                 Files.write(logFile, header.getBytes(StandardCharsets.UTF_8),
                         StandardOpenOption.CREATE, StandardOpenOption.APPEND);

@@ -1,5 +1,6 @@
 package com.onpositive.analyzer.mcp.reflection;
 
+import com.onpositive.analyzer.mcp.FileLogger;
 import com.onpositive.analyzer.printing.IValuePrinter;
 import com.onpositive.analyzer.printing.ValuePrintersRegistry;
 
@@ -62,7 +63,8 @@ public final class ToolInvoker {
         if (printerAnnot != null) {
             try {
                 printer = printerAnnot.impl().getDeclaredConstructor().newInstance();
-            } catch (Exception ignored) {
+            } catch (Exception exc) {
+                FileLogger.getInstance().logError(ToolInvoker.class.getName(), exc);
             }
         }
 

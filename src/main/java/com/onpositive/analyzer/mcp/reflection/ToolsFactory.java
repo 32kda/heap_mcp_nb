@@ -16,7 +16,7 @@ import java.util.Map;
 
 public class ToolsFactory {
 
-    private static final FileLogger FILE_LOGGER = new FileLogger();
+    private static final FileLogger FILE_LOGGER = FileLogger.getInstance();
 
     public static List<SyncToolSpecification> createToolSpecs(Object toolsService) {
         List<SyncToolSpecification> specs = new ArrayList<>();

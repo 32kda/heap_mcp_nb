@@ -21,15 +21,8 @@ public class InstancePagePrinter implements IValuePrinter {
         StringBuilder sb = new StringBuilder();
         int count = 0;
         for (Instance inst : instances) {
-            try {
-                sb.append(String.format("ID: %d, Class: %s, Retained Size: %d\n",
-                        inst.getInstanceId(),
-                        inst.getJavaClass().getName(),
-                        inst.getRetainedSize()));
-                count++;
-            } catch (Exception e) {
-                // Skip objects with invalid instance references
-            }
+            sb.append(InstanceQuickPrinter.quickPrint(inst)).append("\n").append(InstanceQuickPrinter.formatFieldsShort(inst)).append("\n");
+            count++;
         }
 
         if (count == 0) {
